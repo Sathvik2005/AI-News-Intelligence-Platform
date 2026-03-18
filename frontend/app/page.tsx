@@ -103,7 +103,7 @@ export default function HomePage() {
       <header className="mb-8">
         <p className="text-sm uppercase tracking-wider text-slate-600">AI News Intelligence Platform</p>
         <h1 className="text-4xl font-bold">Dashboard</h1>
-        <p className="mt-2 text-sm text-slate-700">Sources configured: {sourceCount}</p>
+        <p className="mt-2 text-sm text-slate-700">Live sources configured: {sourceCount}</p>
       </header>
 
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">

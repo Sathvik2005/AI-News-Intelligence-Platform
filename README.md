@@ -136,6 +136,30 @@ This starts backend + frontend and triggers a refresh automatically.
 - Hosting runbook: [deployment/hosting.md](deployment/hosting.md)
 - Vercel GitHub auto-deploy workflow: [.github/workflows/vercel-deploy.yml](.github/workflows/vercel-deploy.yml)
 
+### Vercel Token Setup (Local + GitHub)
+
+Use a Vercel personal token scoped to your projects.
+
+Windows (persist token to user environment):
+
+```cmd
+setx VERCEL_TOKEN "<your_new_token>"
+```
+
+Validate in a new terminal:
+
+```cmd
+vercel whoami --token %VERCEL_TOKEN%
+```
+
+For GitHub Actions, add these repository secrets (used by `.github/workflows/vercel-deploy.yml`):
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+
+Security note: if a token is ever exposed in chat, logs, or commits, revoke it immediately and create a new token.
+
 ## 12. Submission Deliverables Covered
 
 - Architecture diagram and design docs
