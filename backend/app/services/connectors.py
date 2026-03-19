@@ -97,6 +97,60 @@ def fetch_latest_with_status(max_items_per_source: int = 5) -> tuple[list[dict],
             content = _strip_html(entry.get("description", ""))[:2000]
             link = (entry.get("link") or "").strip()
             text = f"{title} {summary}"
+            tags = _infer_tags(text)
+            
+            # Recency score
+            published_at = _parse_published(entry.get("published") or entry.get("updated"))
+            hours_since = (datetime.now(timezone.utc) - published_at).total_seconds() / 3600
+            recency_score = __import__('math').exp(-0.05 * max(0, hours_since))
+            
+            # Source authority mapping
+            auth_map = {
+                "OpenAI": 1.0, "DeepMind": 0.95, "Anthropic": 0.9, 
+                "TechCrunch AI": 0.8, "Reddit ML": 0.6
+            }
+            source_score = auth_map.get(source["name"], 0.7)
+            
+            # Engagement score
+            engagement = 0.5  # default
+            
+            # AI relevance
+            relevance_keywords = ["AI", "LLM", "GPT", "diffusion", "transformer"]
+            keyword_count = sum(text.lower().count(k.lower()) for k in relevance_keywords)
+            ai_relevance = min(1.0, keyword_count / 5.0)
+            
+            # Combine scores
+            final_score = (0.4 * recency_score) + (0.3 * source_score) + (0.1 * engagement) + (0.2 * ai_relevance)
+            
+            # Model Awareness
+            detected_model = None
+            detected_company = None
+            lowered_text = text.lower()
+            if "gpt-4" in lowered_text or "o1" in lowered_text or "openai" in lowered_text:
+                detected_model = "GPT"
+                detected_company = "OpenAI"
+            elif "claude" in lowered_text:
+                detected_model = "Claude"
+                detected_company = "Anthropic"
+            elif "gemini" in lowered_text:
+                detected_model = "Gemini"
+                detected_company = "Google"
+            elif "llama" in lowered_text:
+                detected_model = "LLaMA"
+                detected_company = "Meta"
+            elif "mistral" in lowered_text or "mixtral" in lowered_text:
+                detected_model = "Mistral"
+                detected_company = "Mistral AI"
+            elif "stable diffusion" in lowered_text:
+                detected_model = "Stable Diffusion"
+                detected_company = "Stability AI"
+            
+            entities = {}
+            if detected_model:
+                entities["model"] = detected_model
+            if detected_company:
+                entities["company"] = detected_company
+            
             normalized.append(
                 {
                     "title": title,
@@ -107,11 +161,11 @@ def fetch_latest_with_status(max_items_per_source: int = 5) -> tuple[list[dict],
                     "source": source["name"],
                     "source_url": source["url"],
                     "source_type": "rss",
-                    "tags": _infer_tags(text),
-                    "entities": {},
-                    "score": 60 + len(summary) / 60,
+                    "tags": tags,
+                    "entities": entities,
+                    "score": final_score * 100, # Scale to 0-100 for display
                     "trend_score": 0,
-                    "published_at": _parse_published(entry.get("published") or entry.get("updated")),
+                    "published_at": published_at,
                 }
             )
 

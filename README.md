@@ -1,5 +1,7 @@
 # AI News Intelligence Platform
 
+This system is designed as a scalable AI intelligence platform, not just a news dashboard.
+
 Production-grade platform to ingest, deduplicate, enrich, analyze, and broadcast AI news and research.
 
 ## 1. Product Overview

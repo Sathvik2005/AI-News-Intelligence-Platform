@@ -9,6 +9,7 @@ class NewsResponse(BaseModel):
     source: str
     url: str
     tags: list[str] = Field(default_factory=list)
+    entities: dict = Field(default_factory=dict)
     score: float = 0
     published_at: datetime
 

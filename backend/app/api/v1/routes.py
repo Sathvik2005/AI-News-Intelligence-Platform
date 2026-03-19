@@ -61,6 +61,23 @@ def trends() -> TrendResponse:
     return get_trends()
 
 
+@router.post("/ai/pulse")
+def generate_ai_pulse() -> dict:
+    # Use LLM (Mocked) to summarize top 10 ranked news
+    return {
+        "status": "ok",
+        "pulse": "Top AI Developments Today\n\n- OpenAI drops API pricing by 50%\n- Local Llama models achieve GPT-4 level tasks\n- New agent framework released on GitHub"
+    }
+    
+@router.post("/newsletter/generate")
+def generate_newsletter() -> dict:
+    # Use LLM (Mocked) to summarize weekly news
+    return {
+        "status": "ok",
+        "content": "# Weekly AI Newsletter\n\n## Top News\n- Agent tooling has seen a 24% increase in mentions.\n\n## Research Highlights\n- Transformers vs Diffusion in the latest multimodal benchmarks.\n\n## Startup Funding\n- Stealth AI agent startup raised $15M.\n\n## Model Releases\n- Llama-Edge and OpenAI oX reported early specs."
+    }
+
+
 @router.get("/trends/industry-pulse")
 def industry_pulse() -> dict:
     return {"industry_pulse": get_trends().industry_pulse}

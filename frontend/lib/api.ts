@@ -5,6 +5,7 @@ export type NewsItem = {
   source: string;
   url: string;
   tags: string[];
+  entities?: { model?: string; company?: string };
   score: number;
   published_at: string;
 };

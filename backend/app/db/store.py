@@ -54,8 +54,33 @@ def list_sources() -> list[dict[str, Any]]:
 def insert_news_item(item: dict[str, Any]) -> str:
     news_id = str(uuid4())
     source_id = upsert_source(item["source"], item["source_url"], item.get("source_type", "rss"))
+    
+    # Generate embedding first for duplicate check
+    embedding = build_embedding(f"{item['title']} {item.get('summary', '')} {' '.join(item.get('tags', []))}")
+    vector_literal = to_vector_literal(embedding)
+    
     with _conn() as conn:
         with conn.cursor() as cur:
+            # Check for duplicates using cosine similarity (1 - distance)
+            cur.execute(
+                """
+                SELECT news_id, 1 - (embedding <=> %s::vector) AS similarity 
+                FROM news_embeddings 
+                ORDER BY similarity DESC LIMIT 1
+                """,
+                (vector_literal,)
+            )
+            dup_row = cur.fetchone()
+            is_duplicate = False
+            canonical_id = None
+            if dup_row and dup_row["similarity"] > 0.85:
+                is_duplicate = True
+                canonical_id = dup_row["news_id"]
+            
+            # Use original duplicate flag if provided, else use similarity check
+            final_is_duplicate = item.get("is_duplicate", is_duplicate)
+            final_canonical_id = item.get("canonical_news_id", canonical_id)
+
             cur.execute(
                 """
                 INSERT INTO news_items (
@@ -84,8 +109,8 @@ def insert_news_item(item: dict[str, Any]) -> str:
                     item.get("entities", {}),
                     item.get("score", 0),
                     item.get("trend_score", 0),
-                    item.get("is_duplicate", False),
-                    item.get("canonical_news_id"),
+                    final_is_duplicate,
+                    final_canonical_id,
                     item.get("published_at", datetime.now(timezone.utc)),
                     datetime.now(timezone.utc),
                 ),
@@ -93,7 +118,6 @@ def insert_news_item(item: dict[str, Any]) -> str:
             row = cur.fetchone()
             persisted_news_id = str(row["id"])
 
-            embedding = build_embedding(f"{item['title']} {item.get('summary', '')} {' '.join(item.get('tags', []))}")
             cur.execute(
                 """
                 INSERT INTO news_embeddings (news_id, embedding, model_name)
@@ -102,7 +126,7 @@ def insert_news_item(item: dict[str, Any]) -> str:
                     embedding = EXCLUDED.embedding,
                     model_name = EXCLUDED.model_name
                 """,
-                (persisted_news_id, to_vector_literal(embedding), "hash-embedding-v1"),
+                (persisted_news_id, vector_literal, "all-MiniLM-L6-v2"),
             )
 
             conn.commit()
@@ -112,7 +136,7 @@ def insert_news_item(item: dict[str, Any]) -> str:
 def list_news(limit: int = 50, offset: int = 0, q: str | None = None) -> list[dict[str, Any]]:
     query = """
         SELECT n.id, n.title, COALESCE(n.summary, '') AS summary,
-               s.name AS source, n.url, n.tags, n.score, n.published_at
+               s.name AS source, n.url, n.tags, n.entities, n.score, n.published_at
         FROM news_items n
         JOIN sources s ON n.source_id = s.id
         WHERE n.is_duplicate = FALSE
@@ -137,7 +161,7 @@ def get_news_by_id(news_id: str) -> dict[str, Any] | None:
             cur.execute(
                 """
                 SELECT n.id, n.title, COALESCE(n.summary, '') AS summary,
-                       s.name AS source, n.url, n.tags, n.score, n.published_at
+                       s.name AS source, n.url, n.tags, n.entities, n.score, n.published_at
                 FROM news_items n
                 JOIN sources s ON n.source_id = s.id
                 WHERE n.id = %s
@@ -186,17 +210,40 @@ def remove_favorite(favorite_id: str) -> bool:
 
 
 def build_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
-    values = [0.0] * dim
-    for token in text.lower().split():
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        idx = int.from_bytes(digest[:2], "big") % dim
-        sign = 1.0 if digest[2] % 2 == 0 else -1.0
-        values[idx] += sign
-
-    norm = sum(v * v for v in values) ** 0.5
-    if norm == 0:
-        return values
-    return [v / norm for v in values]
+    try:
+        from sentence_transformers import SentenceTransformer
+        import numpy as np
+        
+        # Load model globally to avoid reloading, using a singleton pattern
+        if not hasattr(build_embedding, "model"):
+            build_embedding.model = SentenceTransformer('all-MiniLM-L6-v2')
+            
+        embeddings = build_embedding.model.encode([text])
+        
+        # all-MiniLM-L6-v2 outputs 384d, we need to handle dimension mismatch if DB is 1536
+        # Let's pad it to 1536 for compatibility with existing schema
+        padded = np.zeros(1536)
+        padded[:min(384, len(embeddings[0]))] = embeddings[0][:1536]
+        
+        # Normalize
+        norm = np.linalg.norm(padded)
+        if norm > 0:
+            padded = padded / norm
+            
+        return padded.tolist()
+    except ImportError:
+        # Fallback to hash if sentence_transformers isn't installed
+        import hashlib
+        values = [0.0] * dim
+        for token in text.lower().split():
+            digest = hashlib.sha256(token.encode("utf-8")).digest()
+            idx = int.from_bytes(digest[:2], "big") % dim
+            sign = 1.0 if digest[2] % 2 == 0 else -1.0
+            values[idx] += sign
+        norm = sum(v * v for v in values) ** 0.5
+        if norm == 0:
+            return values
+        return [v / norm for v in values]
 
 
 def to_vector_literal(values: list[float]) -> str:
@@ -204,6 +251,7 @@ def to_vector_literal(values: list[float]) -> str:
 
 
 def semantic_search_news(query: str, limit: int = 20) -> list[dict[str, Any]]:
+
     embedding = build_embedding(query)
     vector = to_vector_literal(embedding)
     with _conn() as conn:
@@ -211,7 +259,7 @@ def semantic_search_news(query: str, limit: int = 20) -> list[dict[str, Any]]:
             cur.execute(
                 """
                 SELECT n.id, n.title, COALESCE(n.summary, '') AS summary,
-                       s.name AS source, n.url, n.tags, n.score, n.published_at
+                       s.name AS source, n.url, n.tags, n.entities, n.score, n.published_at
                 FROM news_embeddings e
                 JOIN news_items n ON n.id = e.news_id
                 JOIN sources s ON s.id = n.source_id
