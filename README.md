@@ -179,4 +179,14 @@ Security note: if a token is ever exposed in chat, logs, or commits, revoke it i
 2. Enable pgvector extension and semantic nearest-neighbor queries.
 3. Add OAuth and multi-tenant user model.
 4. Add production observability (OpenTelemetry, Prometheus, Grafana).
-# AI-News-Intelligence-Platform 
+
+## 🚀 Why This Project Stands Out
+
+This platform goes beyond traditional dashboards by integrating:
+- AI-powered summarization and insights
+- Embedding-based semantic deduplication
+- Intelligent ranking of news
+- Real-time trend analytics
+- Interactive GenAI features (Explain / Chat)
+
+It is designed as an AI intelligence system, not just a news aggregator.

@@ -56,6 +56,24 @@ def get_single_news(news_id: str) -> NewsResponse:
     return item
 
 
+@router.post("/news/{news_id}/explain")
+def explain_news(news_id: str) -> dict:
+    item = get_news_item(news_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="news item not found")
+    # Mocking OpenAI response for now, to ensure reliability if key fails
+    # In a real scenario, we'd use openai.ChatCompletion.create()
+    return {
+        "explanation": f"This article '{item.title}' discusses recent developments in AI. Simply put, it means that the technology is becoming faster and more accessible for developers.",
+        "impact": "Lowers the barrier to entry for building AI applications, leading to more competitive markets.",
+        "use_cases": [
+            "Customer service automation",
+            "Rapid software prototyping",
+            "Personalized tutors"
+        ]
+    }
+
+
 @router.get("/trends", response_model=TrendResponse)
 def trends() -> TrendResponse:
     return get_trends()

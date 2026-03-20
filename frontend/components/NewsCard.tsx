@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Star, Share2, ExternalLink, ChevronDown, Sparkles } from "lucide-react";
+import { Star, Share2, ExternalLink, ChevronDown, Sparkles, Lightbulb } from "lucide-react";
 import type { NewsItem } from "../lib/api";
+import { NewsModal } from "./NewsModal";
 
 type Props = {
   item: NewsItem;
@@ -14,11 +15,14 @@ type Props = {
 export default function NewsCard({ item, onFavorite, onBroadcast }: Props) {
   const [channel, setChannel] = useState<"email" | "linkedin" | "whatsapp">("linkedin");
   const [isHovered, setIsHovered] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <Card 
-      className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-zinc-700 hover:shadow-xl"
-    >
+    <>
+    <div onClick={() => setIsModalOpen(true)} className="cursor-pointer">
+      <Card 
+        className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-zinc-700 hover:shadow-xl h-full flex flex-col"
+      >
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-lg font-semibold text-zinc-100 leading-tight group-hover:text-blue-400 transition-colors">
           {item.title}
@@ -61,32 +65,35 @@ export default function NewsCard({ item, onFavorite, onBroadcast }: Props) {
             variant="ghost" 
             size="sm" 
             className={`transition-colors ${(item as any).isFavorited ? 'text-yellow-500 bg-yellow-500/10' : 'text-zinc-400 hover:text-yellow-500 hover:bg-yellow-500/10'}`}
-            onClick={() => onFavorite?.(item.id)}
+            onClick={(e) => { e.stopPropagation(); onFavorite?.(item.id); }}
           >
             <Star className={`h-4 w-4 mr-2 ${(item as any).isFavorited ? 'fill-yellow-500' : ''}`} />
             Save
           </Button>
           
           <div className="relative group/share">
-            <Button variant="ghost" size="sm" className="text-zinc-400">
+            <Button variant="ghost" size="sm" className="text-zinc-400" onClick={(e) => e.stopPropagation()}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
               <ChevronDown className="h-3 w-3 ml-1" />
             </Button>
-            <div className="absolute right-0 bottom-full mb-1 hidden flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1 shadow-lg group-hover/share:flex">
-                <Button size="sm" variant="ghost" onClick={() => onBroadcast?.("linkedin", item)} className="justify-start text-xs">LinkedIn</Button>
-                <Button size="sm" variant="ghost" onClick={() => onBroadcast?.("email", item)} className="justify-start text-xs">Email</Button>
-                <Button size="sm" variant="ghost" onClick={() => onBroadcast?.("whatsapp", item)} className="justify-start text-xs">WhatsApp</Button>
+            <div className="absolute right-0 bottom-full mb-1 hidden flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1 shadow-lg group-hover/share:flex" onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onBroadcast?.("linkedin", item); }} className="justify-start text-xs">LinkedIn</Button>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onBroadcast?.("email", item); }} className="justify-start text-xs">Email</Button>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onBroadcast?.("whatsapp", item); }} className="justify-start text-xs">WhatsApp</Button>
             </div>
           </div>
           
           <Button variant="ghost" size="sm" asChild className="text-zinc-400 hover:text-blue-400">
-            <a href={item.url} target="_blank" rel="noreferrer">
+            <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>
         </div>
       </div>
     </Card>
+    </div>
+    <NewsModal item={item} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
   );
 }

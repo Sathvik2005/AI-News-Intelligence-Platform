@@ -76,6 +76,23 @@ export default function HomePage() {
     }
   }
 
+  const loadDemoData = () => {
+    setNews([
+      {
+        id: "demo-1", title: "OpenAI announces new o1 preview model", 
+        summary: "The newly released o1 model introduces chain of thought reasoning.",
+        source: "OpenAI", url: "https://openai.com", tags: ["LLMs", "Research"],
+        entities: { model: "o1", company: "OpenAI" }, score: 98, published_at: new Date().toISOString()
+      },
+      {
+        id: "demo-2", title: "Running Llama-3 locally just got easier", 
+        summary: "New tools are allowing optimized local execution of Meta's Llama-3.",
+        source: "Hacker News", url: "https://news.ycombinator.com", tags: ["Local AI", "LLMs"],
+        entities: { model: "Llama-3", company: "Meta" }, score: 85, published_at: new Date().toISOString()
+      }
+    ]);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -135,9 +152,12 @@ export default function HomePage() {
         ) : news.length === 0 ? (
           <div className="rounded-2xl border border-zinc-800 border-dashed bg-zinc-900/30 p-12 text-center flex flex-col items-center">
              <LayoutTemplate className="h-12 w-12 text-zinc-600 mb-4" />
-             <h3 className="text-lg font-medium text-white">No news found</h3>
-             <p className="text-zinc-500 mt-2 max-w-sm mb-6">Your feed is empty. Try refreshing the sources to fetch the latest intelligence.</p>
-             <Button onClick={onRefresh} variant="outline">Fetch Now</Button>
+             <h3 className="text-lg font-medium text-white">No active feeds</h3>
+             <p className="text-zinc-500 mt-2 max-w-sm mb-6">Your feed is empty. This might mean the DB is fresh or APIs failed.</p>
+             <div className="flex gap-4">
+               <Button onClick={onRefresh} variant="outline">Fetch Live Now</Button>
+               <Button onClick={loadDemoData} className="bg-blue-600 hover:bg-blue-500 text-white">Load Demo Data</Button>
+             </div>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
