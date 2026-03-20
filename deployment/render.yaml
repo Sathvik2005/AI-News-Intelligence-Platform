@@ -2,6 +2,7 @@ services:
   - type: web
     name: ai-news-backend
     runtime: docker
+    plan: free
     dockerfilePath: backend/Dockerfile
     dockerContext: backend
     healthCheckPath: /health
@@ -37,17 +38,20 @@ services:
   - type: web
     name: ai-news-frontend
     runtime: node
+    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_BASE
         value: https://ai-news-backend.onrender.com
 
 databases:
   - name: ai-news-postgres
+    plan: free
     databaseName: ai_news
     user: ai_news
 
   - name: ai-news-redis
+    plan: free
     ipAllowList: []
