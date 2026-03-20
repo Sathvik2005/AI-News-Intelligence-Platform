@@ -46,12 +46,13 @@ services:
       - key: NEXT_PUBLIC_API_BASE
         value: https://ai-news-backend.onrender.com
 
+  - type: redis
+    name: ai-news-redis
+    plan: free
+    ipAllowList: []
+
 databases:
   - name: ai-news-postgres
     plan: free
     databaseName: ai_news
     user: ai_news
-
-  - name: ai-news-redis
-    plan: free
-    ipAllowList: []
